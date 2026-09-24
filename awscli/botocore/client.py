@@ -222,7 +222,10 @@ class ClientCreator:
         )
 
     def _register_retries(self, client):
-        retry_mode = client.meta.config.retries['mode']
+        retry_mode = client.meta.config.retries.get('mode')
+        # Default to standard mode if max_attempts is specified but mode is not
+        if retry_mode is None and client.meta.config.retries.get('max_attempts'):
+            retry_mode = 'standard'
         if retry_mode == 'standard':
             self._register_v2_standard_retries(client)
         elif retry_mode == 'adaptive':
