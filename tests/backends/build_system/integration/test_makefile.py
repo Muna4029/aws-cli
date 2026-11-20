@@ -32,7 +32,7 @@ class TestMakeInstall(BaseArtifactTest):
         aws_exe = bin_path / "aws"
         self.assert_version_string_is_correct(aws_exe, "sandbox")
 
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_install(self, workspace: VEnvWorkspace):
         workspace.configure(
             install_type="system-sandbox",
@@ -50,7 +50,7 @@ class TestMakeInstall(BaseArtifactTest):
             workspace.bin_path, workspace.lib_path
         )
 
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_install_prefix(self, workspace):
         workspace.configure(
             install_type="system-sandbox",
@@ -69,7 +69,7 @@ class TestMakeInstall(BaseArtifactTest):
             workspace.bin_path, workspace.lib_path
         )
 
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_install_destdir(self, workspace):
         workspace.configure(
             install_type="system-sandbox",
@@ -89,7 +89,7 @@ class TestMakeInstall(BaseArtifactTest):
             workspace.bin_path, workspace.lib_path
         )
 
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_uninstall(self, workspace: VEnvWorkspace):
         workspace.configure(
             install_type="system-sandbox",
@@ -116,7 +116,7 @@ class TestMakeInstall(BaseArtifactTest):
 
 
 class TestMake(BaseArtifactTest):
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_exe_with_deps(self, workspace: VEnvWorkspace):
         workspace.configure(
             install_type="portable-exe",
@@ -127,7 +127,7 @@ class TestMake(BaseArtifactTest):
         self.assert_built_exe_is_correct(workspace.cli_path)
         self.assert_no_pycache(workspace.cli_path)
 
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_exe_without_deps(self, workspace: VEnvWorkspace):
         workspace.install_dependencies()
         workspace.install_pyinstaller()
@@ -137,7 +137,7 @@ class TestMake(BaseArtifactTest):
         self.assert_no_pycache(workspace.cli_path)
         self.assert_built_exe_is_correct(workspace.cli_path)
 
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_venv_with_deps(self, workspace: VEnvWorkspace):
         workspace.configure(
             install_type="system-sandbox",
@@ -148,7 +148,7 @@ class TestMake(BaseArtifactTest):
         self.assert_no_pycache(workspace.cli_path)
         self.assert_built_venv_is_correct(workspace.build_path)
 
-    @skip_if_windows(WINDOWS_SKIP_REASON)
+    @skip_if_windows(reason=WINDOWS_SKIP_REASON)
     def test_venv_without_deps(self, workspace: VEnvWorkspace):
         workspace.install_dependencies()
         workspace.configure(
