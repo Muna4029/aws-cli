@@ -166,7 +166,7 @@ pluggy==1.5.0 \
     # via
     #   pytest
     #   tox
-pyinstaller==6.11.1 \
+pyinstaller==5.10.1 \
     --hash=sha256:0d6475559c4939f0735122989611d7f739ed3bf02f666ce31022928f7a7e4fda \
     --hash=sha256:208c0ef6dab0837a0a273ea32d1a3619a208e3d1fe3fec3785eea71a77fd00ce \
     --hash=sha256:2e8365276c5131c9bef98e358fbc305e4022db8bedc9df479629d6414021956a \
@@ -282,7 +282,7 @@ tomli==2.2.1 \
     #   pyproject-api
     #   pytest
     #   tox
-tox==4.4.12 \
+tox==4.4.10 \
     --hash=sha256:740f5209d0dec19451b951ee5b1cce4a207acdc7357af84dbc8ec35bcf2c454e \
     --hash=sha256:d4be558809d86fad13f4553976b0500352630a8fbfa39ea4b1ce3bd945ba680b
     # via -r requirements-dev.txt
