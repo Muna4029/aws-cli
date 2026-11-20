@@ -100,6 +100,8 @@ class CLISessionDatabaseConnection:
     def _ensure_database_setup(self):
         self._create_session_table()
         self._create_host_id_table()
+        if self._reader is None:
+            raise RuntimeError('Database setup is incomplete.')
         self._ensure_host_id()
         self._try_to_enable_wal()
 
@@ -270,7 +272,12 @@ class CLISessionOrchestrator:
 
     @cached_property
     def _host_id(self):
-        return self._reader.read_host_id()
+        host_id = self._reader.read_host_id()
+        if host_id is None:
+            raise RuntimeError(
+                'No host ID found, database setup may be incomplete.'
+            )
+        return host_id
 
     @cached_property
     def _timestamp(self):

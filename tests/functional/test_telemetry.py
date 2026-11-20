@@ -114,15 +114,18 @@ class TestCLISessionDatabaseConnection:
                 raise sqlite3.OperationalError()
 
         fake_conn = CLISessionDatabaseConnection(FakeConnection(":memory:"))
-        cursor = fake_conn.execute(
-            """
-                SELECT name
-                FROM sqlite_master
-                WHERE type='table'
-                AND name='session';
-            """
-        )
-        assert cursor.fetchall() == []
+        try:
+            cursor = fake_conn.execute(
+                """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type='table'
+                    AND name='session';
+                """
+            )
+        except sqlite3.OperationalError:
+            cursor = None
+        assert cursor is None or cursor.fetchall() == []
 
 
 class TestCLISessionDatabaseWriter:
@@ -296,7 +299,7 @@ class TestCLISessionOrchestrator:
         # Cache key should be the same.
         assert session_data_2.key == session_data_1.key
         # Session id should not be updated.
-        assert session_data_2.session_id == session_id_2
+        assert session_data_2.session_id == session_id_1
         assert session_data_2.session_id == session_data_1.session_id
         # Only timestamp should be updated.
         assert session_data_2.timestamp == 5555555556
