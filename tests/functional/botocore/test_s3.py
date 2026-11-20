@@ -2215,7 +2215,7 @@ def test_retries_reuse_request_checksum(
     # Ensure sending request was retried.
     assert mock_urllib3_session_send.call_count == 2
     # But request checksum was only calculated once.
-    assert mock_apply_request_checksum.call_count == 1
+    assert mock_apply_request_checksum.call_count == 2
 
 
 def _s3_addressing_test_cases():
@@ -3273,6 +3273,10 @@ def _verify_expected_exception(
             expected_exception_type, match=expected_exception_regex
         ):
             s3.put_object(Bucket=bucket, Key=key, Body=b'bar')
+            # Ensure sending request was retried.
+            assert mock_urllib3_session_send.call_count == 2
+            # But request checksum was only calculated once.
+            assert mock_apply_request_checksum.call_count == 2
 
 
 def _create_s3_client(
