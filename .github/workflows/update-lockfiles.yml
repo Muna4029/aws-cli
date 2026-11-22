@@ -20,6 +20,9 @@ on:
           the generated files.
 
 
+permissions:
+  contents: write
+
 jobs:
 
   update-lockfiles:
@@ -27,15 +30,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.11"]
         os: [macOS-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.inputs.ref }}
+          persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -54,12 +58,12 @@ jobs:
       - name: Regenerate windows files
         if: runner.os == 'Windows'
         run: |
-          python scripts/regenerate-lock-files --show-files --include-sdist
+          python scripts/regenerate-lock-files --show-files
           echo "CHANGES=$(git status --porcelain=v1)" >> $env:GITHUB_ENV
       - name: Regenerate lock files
         if: runner.os != 'Windows'
         run: |
-          python scripts/regenerate-lock-files --show-files --include-sdist
+          python scripts/regenerate-lock-files --show-files
           echo "CHANGES<<EOF" >> $GITHUB_ENV
           echo "CHANGES=$(git status --porcelain=v1)" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -75,11 +79,12 @@ jobs:
           echo "PLATFORMS=macOS and Linux" >> $GITHUB_ENV
       - name: git commit and push updated lock files
         if: github.event.inputs.dry-run == 'no' && env.CHANGES
+        shell: bash
         run: |
           git config --global user.name "Github Actions"
           git config --global user.email "<>"
           git fetch
           git add requirements
-          git commit -m "Regenerate lock files for ${{ env.PLATFORMS }}"
+          git commit -m "Regenerate lock files for ${PLATFORMS}"
           git pull --rebase
           git push
