@@ -11,12 +11,24 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
+import sys
 
-from awscli.testutils import skip_if_windows
+import pytest
+
 from tests.backends.build_system.integration import (
     BaseArtifactTest,
     VEnvWorkspace,
 )
+
+
+# Compatibility wrapper: allow usage like @skip_if_windows("reason")
+# Tests in this module use skip_if_windows with a single positional
+# reason string; ensure that is interpreted as the reason (not as a
+# condition expression) by returning a pytest.skipif marker with the
+# Windows condition and the provided reason.
+def skip_if_windows(reason):
+    return pytest.mark.skipif(sys.platform.startswith("win"), reason=reason)
+
 
 WINDOWS_SKIP_REASON = "./configure tests do not run nativly on windows"
 

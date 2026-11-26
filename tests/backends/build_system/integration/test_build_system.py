@@ -40,14 +40,21 @@ class TestBuildBackendFailureCases:
         workspace.install_dependencies()
         with pytest.raises(subprocess.CalledProcessError) as e:
             workspace.call_build_system("portable-exe", download_deps=False)
-        error_text = e.value.stdout.decode()
+        # Prefer stderr diagnostics but fall back to stdout if necessary.
+        err = getattr(e.value, "stderr", None)
+        if err is None:
+            err = e.value.stdout
+        error_text = err.decode() if isinstance(err, (bytes, bytearray)) else str(err)
         assert "pyinstaller" in error_text
         assert "No such file or directory" in error_text
 
     def test_errors_building_venv_without_runtime_deps(self, workspace):
         with pytest.raises(subprocess.CalledProcessError) as e:
             workspace.call_build_system("system-sandbox", download_deps=False)
-        error_text = e.value.stdout.decode()
+        err = getattr(e.value, "stderr", None)
+        if err is None:
+            err = e.value.stdout
+        error_text = err.decode() if isinstance(err, (bytes, bytearray)) else str(err)
         possible_messages = [
             "No module named 'flit_core'",
             # Recent versions of pyproject-hooks started consuming
