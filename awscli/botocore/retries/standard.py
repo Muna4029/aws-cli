@@ -452,6 +452,10 @@ class StandardRetryConditions(BaseRetryableChecker):
                     [
                         special.RetryIDPCommunicationError(),
                         special.RetryDDBChecksumError(),
+                        # Include S3-specific checksum retry checker so
+                        # S3 checksum retry logic is considered by the
+                        # standard retry conditions (fixes missing S3 retry).
+                        special.RetryS3ChecksumError(),
                     ]
                 ),
             ]
