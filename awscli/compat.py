@@ -30,7 +30,31 @@ from functools import partial
 from urllib.error import URLError
 from urllib.request import urlopen
 
-from botocore.compat import OrderedDict, six
+try:
+    # Prefer botocore's compatibility helpers when available.
+    from botocore.compat import OrderedDict, six
+except Exception:
+    # During isolated build steps botocore may not be installed. Provide
+    # minimal fallbacks so importing this module does not raise an
+    # exception. These fallbacks cover the attributes awscli typically
+    # expects from six and OrderedDict from the stdlib.
+    from collections import OrderedDict
+
+    class _SixShim:
+        text_type = str
+        binary_type = bytes
+        string_types = (str,)
+        integer_types = (int,)
+
+        @staticmethod
+        def advance_iterator(it):
+            return next(it)
+
+        @staticmethod
+        def iteritems(d):
+            return iter(d.items())
+
+    six = _SixShim()
 
 # Backwards compatible definitions from six
 PY3 = sys.version_info[0] == 3

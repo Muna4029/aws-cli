@@ -99,14 +99,68 @@ class Requirement:
         if not match:
             raise RuntimeError(f"Unknown version specifier {constraint}")
         comparison, constraint_version = match.group('comparison', 'version')
-        version, constraint_version = self._normalize(
-            version, constraint_version
-        )
 
-        compare_fn = COMPARISONS.get(comparison)
-        if not compare_fn:
+        # Prefer using packaging.version.Version for robust version handling
+        try:
+            from packaging.version import Version
+
+            v_parsed = Version(version)
+            c_parsed = Version(constraint_version)
+
+            if comparison == '==':
+                return v_parsed == c_parsed
+            if comparison == '!=':
+                return v_parsed != c_parsed
+            if comparison == '>=':
+                return v_parsed >= c_parsed
+            if comparison == '<=':
+                return v_parsed <= c_parsed
+            if comparison == '>':
+                return v_parsed > c_parsed
+            if comparison == '<':
+                return v_parsed < c_parsed
             raise RuntimeError(f"Unknown version range specifier {comparison}")
-        return compare_fn(version, constraint_version)
+        except Exception:
+            # Fallback for environments without packaging or on parse failure.
+            # Support equality/inequality for complex strings; for other
+            # comparisons, attempt numeric comparison if the parts are digits.
+            if comparison in ('==', '!='):
+                return (
+                    (version == constraint_version)
+                    if comparison == '=='
+                    else (version != constraint_version)
+                )
+
+            v1_parts = version.split('.')
+            v2_parts = constraint_version.split('.')
+            if all(p.isdigit() for p in v1_parts) and all(
+                p.isdigit() for p in v2_parts
+            ):
+                v1_parts = [int(p) for p in v1_parts]
+                v2_parts = [int(p) for p in v2_parts]
+                while (pad := len(v1_parts) - len(v2_parts)) != 0:
+                    if pad > 0:
+                        v2_parts.append(0)
+                    if pad < 0:
+                        v1_parts.append(0)
+
+                if comparison == '==':
+                    return v1_parts == v2_parts
+                if comparison == '!=':
+                    return v1_parts != v2_parts
+                if comparison == '>=':
+                    return v1_parts >= v2_parts
+                if comparison == '<=':
+                    return v1_parts <= v2_parts
+                if comparison == '>':
+                    return v1_parts > v2_parts
+                if comparison == '<':
+                    return v1_parts < v2_parts
+
+            # If we cannot safely compare, raise a clear error.
+            raise RuntimeError(
+                f"Cannot compare complex version strings {version} and {constraint_version}"
+            )
 
     def _normalize(self, v1: str, v2: str):
         v1_parts = [int(v) for v in v1.split(".")]
@@ -143,11 +197,13 @@ def parse_requirements(lines_list):
         if ' #' in line:
             line = line[: line.find(' #')]
         if line.endswith('\\'):
-            line = line[:-2].strip()
+            # remove only the single trailing backslash and any trailing space
+            line = line[:-1].rstrip()
             try:
-                line += next(lines)
+                continued = next(lines)
             except StopIteration:
                 return
+            line = f"{line}{continued.strip()}"
         yield _parse_req_line(line)
 
 
@@ -156,8 +212,12 @@ def _parse_req_line(line: str):
     if not match:
         raise RuntimeError(f"Unrecognized dependency {line}")
 
-    name, rest = match.group('name', 'rest')
-    return Requirement(name, *rest.split(','))
+    name = match.group('name')
+    # 'rest' group may be optional; default to empty string if not present
+    rest = match.groupdict().get('rest') or ''
+    rest = rest.strip()
+    constraints = [r for r in rest.split(',') if r]
+    return Requirement(name, *constraints)
 
 
 def get_install_requires():
@@ -179,7 +239,14 @@ def get_install_requires():
     extract_dependencies_re = re.compile(r'"(.+)"')
     with open(ROOT_DIR / "pyproject.toml") as f:
         data = f.read()
-    raw_dependencies = dependency_block_re.findall(data)[0]
+    match = dependency_block_re.search(data)
+    if not match:
+        # If the dependencies block cannot be found, fall back to the
+        # requirements reported by flit_core or return an empty list.
+        # This prevents an IndexError when the pyproject layout differs.
+        return requires or []
+
+    raw_dependencies = match.group(1)
     dependencies = extract_dependencies_re.findall(raw_dependencies)
     return dependencies
 
@@ -188,8 +255,18 @@ def get_flit_core_unmet_exception():
     in_venv = sys.prefix != sys.base_prefix
     with open(BOOTSTRAP_REQUIREMENTS) as f:
         flit_core_req = [l for l in f.read().split('\n') if 'flit_core' in l]
+
+    if flit_core_req:
+        parsed = list(parse_requirements(flit_core_req))
+        parsed_req = parsed[0] if parsed else Requirement('flit_core')
+    else:
+        # If the bootstrap file doesn't contain a flit_core line, create a
+        # minimal Requirement to avoid IndexError and provide a meaningful
+        # unmet-dependencies exception.
+        parsed_req = Requirement('flit_core')
+
     return UnmetDependenciesException(
-        [('flit_core', None, list(parse_requirements(flit_core_req))[0])],
+        [('flit_core', None, parsed_req)],
         in_venv,
         reason=(
             'flit_core is needed ahead of time in order to parse the '
