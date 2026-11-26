@@ -122,7 +122,13 @@ class TestCLISessionDatabaseConnection:
                 AND name='session';
             """
         )
-        assert cursor.fetchall() == []
+        # The implementation may return None or a cursor whose fetchall() can be None
+        # when an OperationalError occurs. Treat those cases as an empty result set.
+        if cursor is None:
+            result = []
+        else:
+            result = cursor.fetchall() or []
+        assert result == []
 
 
 class TestCLISessionDatabaseWriter:

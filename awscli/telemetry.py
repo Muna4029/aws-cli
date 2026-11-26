@@ -90,9 +90,29 @@ class CLISessionDatabaseConnection:
             return self._connection.execute(query, *parameters)
         except sqlite3.OperationalError:
             # Process timed out waiting for database lock.
-            # Return any empty `Cursor` object instead of
-            # raising an exception.
-            return sqlite3.Cursor(self._connection)
+            # Return a lightweight `Cursor`-like object that
+            # provides safe behavior for callers expecting
+            # fetchone()/fetchall() so they don't receive None
+            # which could lead to TypeError when indexed.
+            class _EmptyCursor:
+                def execute(self, *args, **kwargs):
+                    return self
+
+                def fetchone(self):
+                    # Return a 0-count row by default so callers
+                    # that index [0] receive a sensible value.
+                    return (0,)
+
+                def fetchall(self):
+                    return []
+
+                def __iter__(self):
+                    return iter([])
+
+                def close(self):
+                    pass
+
+            return _EmptyCursor()
 
     def _ensure_cache_dir(self):
         _CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -111,7 +131,21 @@ class CLISessionDatabaseConnection:
 
     def _ensure_host_id(self):
         cur = self.execute(self._CHECK_HOST_ID)
-        host_id_ct = cur.fetchone()[0]
+        row = None
+        try:
+            row = cur.fetchone()
+        except Exception:
+            # If fetching fails for any reason, treat as no rows
+            row = None
+
+        try:
+            # Defensive: ensure we don't index None or non-subscriptable
+            # results. Default to 0 (no host id present) if anything
+            # unexpected is returned.
+            host_id_ct = row[0] if row is not None and hasattr(row, '__getitem__') and len(row) > 0 else 0
+        except Exception:
+            host_id_ct = 0
+
         if host_id_ct == 0:
             self.execute(
                 self._INSERT_HOST_ID,
